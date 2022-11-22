@@ -1,0 +1,4 @@
+Pick-O-Extension: Version 0.0.7
+	- Bug Fix: Use the local timezone for account holder
+	- Bug Fix: Handle year rollover for game time
+

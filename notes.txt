@@ -1,0 +1,6 @@
+/*
+ Notes:
+	Site https://football.fantasysports.yahoo.com/pickem/
+
+ */
+

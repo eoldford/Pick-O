@@ -1,0 +1,20 @@
+{
+  "name": "Pick-O - Yahoo! Fantasy Football Picker",
+  "short_name": "Pick-O",
+  "version": "1.2",
+  "description": "Yahoo! Fantasy Football Picker",
+  "manifest_version": 3,
+  "icons": { "128":"images/Logo-Extension.png" },
+  "web_accessible_resources": [
+    {
+      "resources":[ "webActions.js" ],
+      "matches"	: [ "https://football.fantasysports.yahoo.com/*" ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches"	: [ "https://football.fantasysports.yahoo.com/pickem/*" ],
+      "js" 	: [ "extension.js" ]
+    }
+  ]
+}
