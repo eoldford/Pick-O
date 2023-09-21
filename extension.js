@@ -434,7 +434,6 @@ function GroupPicksKeepScore()
 		let id = score.getAttribute('pick-o-row-id');
 		let stats = GroupPicksGetRowStats(id);
 		let td = score.getElementsByTagName('td');
-		// EVAN
 		[...td].forEach((r, index) => {
 			if (r.className == 'sum') {
 				// Track the scores for Sorting
@@ -442,10 +441,54 @@ function GroupPicksKeepScore()
 				r.setAttribute('pick-o-score-possible', stats.possible);
 				r.setAttribute('pick-o-score-stats', JSON.stringify(stats));
 				r.setAttribute('title', `Original Points - '${r.innerText}: ${JSON.stringify(stats)}'`);
-				//r.innerText = `${stats.correct} - ${stats.possible}`;
 				r.innerText = `${stats.correct} - ${stats.possible}`;
 				return;
 			}
 		});
 	});
+
+	CalcWinLoss();
+}
+
+function CalcWinLoss()
+{
+	let finishedScores = document.getElementsByClassName('yspNflPickWin');
+	if (finishedScores.length == 0) {
+		console.log('Game not played yet -- return');
+		return;
+	}
+
+	let FavoredRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Favored');
+	let SpreadRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Spread');
+	let UnderdogRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Underdog');
+	if (FavoredRow.length) {
+		FavoredRow[0].lastElementChild.innerText = FavoredRow[0].getElementsByClassName('yspNflPickWin').length + ' Wins';
+	}
+	if (UnderdogRow.length) {
+		UnderdogRow[0].lastElementChild.innerText = UnderdogRow[0].getElementsByClassName('yspNflPickWin').length + ' Wins';
+	}
+
+	// Team Name
+	let TeamNameElement = document.getElementsByTagName('th')[0];
+	if (TeamNameElement.innerText != 'Team Name') {
+		console.log(`Can't find the team name -- return`);
+		return;
+	}
+
+	let TeamNameRow = TeamNameElement.parentElement.nextElementSibling;
+	let max_rows = 25;							// Add a protection value to avoid a runaway loop
+	for (var i = 0; TeamNameRow && i < max_rows; i++) {
+		let TeamName = TeamNameRow.firstElementChild.innerText;
+		let Correct = TeamNameRow.getElementsByClassName('correct').length;
+		let Incorrect = TeamNameRow.getElementsByClassName('incorrect').length;
+		let Stats = JSON.parse(TeamNameRow.lastElementChild.title.replace(/.*{/, '{').replace(/}'/, '}'));
+		let Average = ((Stats.max_points / Stats.games) * Correct);
+		/*
+		 * Aggregate the Score (W) Points - [Average] - Possible Points (L)
+		 */
+		let Score = `<span style="color: #339E00;padding-right: 10px;">(${Correct})</span> ${Stats.correct} - <span style="color: #5494ff">[${Average}]</span> - ${Stats.possible} <span style="color: #C11515;padding-left: 10px;">(${Incorrect})</span>`;
+		TeamNameRow.lastElementChild.innerHTML = Score;
+
+		TeamNameRow = TeamNameRow.nextElementSibling;			// Next Row
+	}
 }
