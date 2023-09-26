@@ -7,11 +7,12 @@ console.log(`${manifest.short_name} - Yahoo! Fantasy Football Picker - ${manifes
 loadWebResource('webActions.js');
 
 if (location.pathname.match(/\/grouppicks$/)) {
+	console.log(`${manifest.short_name} - Grouppicks`);
+	GroupPicksAddExport();
 	/*
 	 * Add up the score of the Group Picks
 	 */
-	console.log(`${manifest.short_name} - Grouppicks`);
-	GroupPicksKeepScore()
+	GroupPicksKeepScore();
 } else if (location.pathname.match(/\/pickem\/\d+\/\d+$/) || location.pathname.match(/\/picks$/)) {
 	/*
 	 * Wait for the Pick'em page to load
@@ -232,6 +233,20 @@ function GetGameTimes()
 	localStorage.setItem(`Week-${week}`, JSON.stringify(GameTimes));
 }
 
+function GroupPicksAddExport()
+{
+	// Add the Export Button
+	let Overview = document.getElementsByClassName('ysf-tertiary-nav');
+	if (Overview.length != 1) {
+		console.log(`Can't find Overview Header -- return`);
+		return;
+	}
+	let Nav = Overview[0].firstElementChild;				//
+	document.getElementsByClassName('ysf-tertiary-nav')[0].firstElementChild
+	let export_link = document.createElement('li');
+	export_link.innerHTML = `<a href="javascript:void(0);" onclick="GroupPicksExportStats()"><span>Export Stats</span></a>`;
+	Nav.appendChild(export_link);
+}
 /*
  * Helper function to sum up the spread points
  */
@@ -289,6 +304,35 @@ function GroupPicksGetRowStats(id)
 		 */
 		return ({id, max_points, picked_points, correct, incorrect, possible, games});
 	}
+}
+
+function GetRowByName(name)
+{
+	let RowElement = null;
+	[...document.getElementsByTagName('th')].forEach((row) => {
+		if (row.innerText == name) {
+			RowElement = row;
+		}
+	});
+	return (RowElement);
+}
+
+function GetPushes()
+{
+	let Push = 0;
+
+	// Calculate Push for Stats
+	let TeamNameElement = GetRowByName('Team Name');
+	let FirstRow = TeamNameElement.parentElement.nextElementSibling;	// First row
+	if (FirstRow) {
+		[...FirstRow.getElementsByTagName('td')].forEach((td) => {
+			if (td.getAttribute('name') == 'pick-o-push') {
+				console.log('Push');
+				Push++;
+			}
+		});
+	}
+	return (Push);
 }
 
 function GroupPicksKeepScore()
@@ -448,6 +492,10 @@ function GroupPicksKeepScore()
 	});
 
 	CalcWinLoss();
+
+	if (location.search.match(/exportStats=/)) {
+		GroupPicksGetWeeklyStats();
+	}
 }
 
 function CalcWinLoss()
@@ -457,7 +505,6 @@ function CalcWinLoss()
 		console.log('Game not played yet -- return');
 		return;
 	}
-
 	let FavoredRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Favored');
 	let SpreadRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Spread');
 	let UnderdogRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Underdog');
@@ -467,15 +514,16 @@ function CalcWinLoss()
 	if (UnderdogRow.length) {
 		UnderdogRow[0].lastElementChild.innerText = UnderdogRow[0].getElementsByClassName('yspNflPickWin').length + ' Wins';
 	}
-
-	// Team Name
-	let TeamNameElement = document.getElementsByTagName('th')[0];
-	if (TeamNameElement.innerText != 'Team Name') {
-		console.log(`Can't find the team name -- return`);
-		return;
+	if (SpreadRow.length) {
+		let Push = GetPushes();
+		if (Push) {
+			SpreadRow[0].lastElementChild.innerText = `${Push} ${(Push > 1 ? 'Pushes' : 'Push')} `;
+		}
 	}
 
-	let TeamNameRow = TeamNameElement.parentElement.nextElementSibling;
+	// Team Name
+	let TeamNameElement = GetRowByName('Team Name');
+	let TeamNameRow = TeamNameElement.parentElement.nextElementSibling;	// First row
 	let max_rows = 25;							// Add a protection value to avoid a runaway loop
 	for (var i = 0; TeamNameRow && i < max_rows; i++) {
 		let TeamName = TeamNameRow.firstElementChild.innerText;
@@ -483,6 +531,7 @@ function CalcWinLoss()
 		let Incorrect = TeamNameRow.getElementsByClassName('incorrect').length;
 		let Stats = JSON.parse(TeamNameRow.lastElementChild.title.replace(/.*{/, '{').replace(/}'/, '}'));
 		let Average = ((Stats.max_points / Stats.games) * Correct);
+
 		/*
 		 * Aggregate the Score (W) Points - [Average] - Possible Points (L)
 		 */
@@ -491,4 +540,116 @@ function CalcWinLoss()
 
 		TeamNameRow = TeamNameRow.nextElementSibling;			// Next Row
 	}
+}
+
+function GroupPicksGetWeeklyStats()
+{
+	let debug = 0;
+
+	console.log(`Export stats for ${location.search}`);
+	let Week = 0;
+	let NumberofGames = 0;
+	let Favorite = 0;
+	let Underdog = 0;
+	let Push = GetPushes();
+
+	let FavoredRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Favored');
+	let UnderdogRow = [...document.getElementsByTagName('tr')].filter((tr) => tr.firstElementChild.innerText == 'Underdog');
+
+	// Calculate Push for Stats
+	let TeamNameElement = GetRowByName('Team Name');
+	let FirstRow = TeamNameElement.parentElement.nextElementSibling;	// First row
+	if (FirstRow) {
+		[...FirstRow.getElementsByTagName('td')].forEach((td) => {
+			if (td.getAttribute('name') == 'pick-o-push') {
+				console.log('Push');
+				Push++;
+			}
+		});
+	}
+
+	Week = document.getElementsByClassName('selected')[1].innerText;
+	if (FavoredRow.length) {
+		NumberofGames = [...FavoredRow[0].getElementsByTagName('td')].filter((td) => td.width == 33).length
+		Favorite = FavoredRow[0].getElementsByClassName('yspNflPickWin').length;
+	}
+	if (UnderdogRow.length) {
+		Underdog = UnderdogRow[0].getElementsByClassName('yspNflPickWin').length;
+	}
+	let PercentUnder = ((Underdog/NumberofGames) * 100).toFixed(0);
+	let PercentFavorite = ((Favorite/NumberofGames) * 100).toFixed(0);
+
+	let csv_data = `${Week}, ${NumberofGames}, ${Underdog}, ${Favorite}, ${Push}, ${PercentUnder}, ${PercentFavorite}`;
+	console.log(csv_data);
+	localStorage.setItem(`Stats-CSV-Week-${Week}`, csv_data);
+
+	let StatsUntil = localStorage.getItem('StatsUntil');
+	if (location.search.replace(/&.*/, '') == StatsUntil) {
+		PrintCSV(StatsUntil);
+		return;
+	} else {
+		let nextWeekLink = document.getElementsByClassName('selected')[1].nextElementSibling.firstElementChild
+		nextWeekLink.href += `&exportStats=true`
+		nextWeekLink.click();
+	}
+
+}
+
+function PrintCSV(StatsUntil)
+{
+	// Export Stats
+	let stop = 1;
+	let csv_header = "Week, # games, Underdog, Favorite, Push, %Under, %Favorite\n";
+	let csv_data = '';
+	let match = StatsUntil.match(/\?week=(\d+)/);
+	if (match) {
+		stop = parseInt(match[1]);
+	}
+	const compareFn = (a, b) => (parseInt(a.replace(/Stats-CSV-Week-/, '')) < parseInt(b.replace(/Stats-CSV-Week-/, '')) ? -1 : 0);
+	Object.keys(localStorage).filter((k) => k.match(/^Stats-CSV-Week/)).sort(compareFn).forEach((week, index) => {
+		/*
+		 * Stop accumulating Stats
+		 */
+		if (index + 1 > stop) {
+			return;
+		}
+		console.log(`${index}: ${week}`);
+		csv_data += localStorage.getItem(week) + '\n';
+	});
+
+	console.log(csv_header + csv_data);
+
+	let txt = "Week, # games, Underdog, Favorite, Push, %Under, %Favorite\n";
+	txt += csv_data;
+
+	navigator.clipboard.writeText(txt).then(function() {
+		console.log(`\tCopied\n '${txt}' to clipboard`);		// Success
+	}, function() {
+		console.error("\tCan't copy text");				// Failed
+	});
+	alert(`Score stats copied to clipboard\n\n${txt}`);
+
+	// Clear the exportStats href reference
+	document.getElementsByClassName('selected')[1].firstElementChild.click();
+}
+
+function ExportCSV()
+{
+	var csv_header = "data:text/csv;charset=utf-8,";
+	var csv_data = "";
+	var filename = 'PickEmStats.csv';
+
+	csv_header += "Week, # games, Underdog, Favorite, Push, %Under, %Favorite\n";
+	const compareFn = (a, b) => (parseInt(a.replace(/Stats-CSV-Week-/, '')) < parseInt(b.replace(/Stats-CSV-Week-/, '')) ? -1 : 0);
+	Object.keys(localStorage).filter((k) => k.match(/^Stats-CSV-Week/)).sort(compareFn).forEach((week) => {
+		console.log(week)
+		csv_data += localStorage.getItem(week) + '\n';
+	});
+	// Make Data available via CSV
+	var encodedUri = encodeURI(csv_header + csv_data);
+	encodedUri = encodedUri.replace(/#/g, '%23');		// Special handling for '#'
+	link = document.createElement('a');
+	link.setAttribute('href', encodedUri);
+	link.setAttribute("download", filename);
+	link.click();
 }

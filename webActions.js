@@ -130,3 +130,16 @@ function SortScoresTotal(element, order)
 	}
 }
 
+function GroupPicksExportStats()
+{
+	console.log('Export Stats');
+
+	// Set the Stats Until variable to tell the extension when to stop
+	localStorage.setItem('StatsUntil', location.search);
+
+	let link = document.getElementById('ysf-grouppicks-week-nav-tabs').firstElementChild.firstElementChild;
+	link.href += `&exportStats=true`
+	link.click();
+
+	return;
+}
