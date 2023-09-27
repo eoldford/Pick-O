@@ -48,7 +48,22 @@ function selectConfidenceScore(teams)
 		select.firstChild.selected = true;
 	});
 }
+function SwapConfidenceScore(element, last)
+{
+	console.log(`${arguments.callee.name}(<element>, '${last}')`)
+	let current = element.selectedIndex;
+	let confScore = document.getElementsByClassName('conf-score');
+	[...confScore].forEach((select) => {
+		/*
+		 * When you swap scores clear the warning
+		 */
+		if (select.firstChild.selectedIndex == 0) {
+			select.firstChild.selectedIndex = last;
+			select.style.backgroundColor = '';
+		}
+	});
 
+}
 function SortScores(element, order)
 {
 	let debug = 0;

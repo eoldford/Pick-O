@@ -68,18 +68,31 @@ function Loaded(elements)
 {
 	console.log(`${manifest.short_name} - Loaded`);
 
-
 	[...elements].forEach((e) => { 
 		if (e.innerText == 'Save Picks') {
 			console.log(`Match - ${e.innerText}`);
 			addAutoPickButton(e);
 		} else {
-			console.log(`Skip - ${e.innerText}`);
+			if (e.getAttribute('type') == 'hidden') {
+				console.log(`Skip - hidden`);
+			} else {
+				console.log(`Skip - ${e.innerText}`);
+			}
 		}
 	});
 
 	// Cache Weekly Games
 	GetGameTimes();
+
+	/*
+	 * Allow you to easily swap scores
+	 */
+	let confScore = document.getElementsByClassName('conf-score');
+	[...confScore].forEach((select) => {
+		if (!select.firstChild.selectedIndex)
+			return;
+		select.firstChild.setAttribute('onchange', `SwapConfidenceScore(this, ${select.firstChild.selectedIndex})`);
+	});
 }
 
 function loadWebResource(filename)
