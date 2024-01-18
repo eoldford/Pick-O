@@ -1,3 +1,9 @@
+Pick-O-Extension: Version 1.6
+	- Bug Fix: Calculate the correct possible points in the playoffs
+
+Pick-O-Extension: Version 1.5
+	- Enhancement: Make it easier to swap confidence points after selecting picks
+
 Pick-O-Extension: Version 1.4
 	- Enhancement: Allow you to Export Stats
 

@@ -130,9 +130,17 @@ function GetCurrentWeek()
 	let week = '';
 	if (location.pathname.match(/grouppicks/)) {
 		week = document.getElementById('ysf-grouppicks-week-nav-tabs').getElementsByClassName('selected')[0].innerText.trim();
+		/*
+		 * In the playoffs you need to use the URL week
+		 */
+		let match = location.search.match(/\?week=(\d+)/);
+		if (match) {
+			week = match[1];
+		}
 	} else {
 		week = document.getElementsByClassName('selected')[0].innerText.trim();
 	}
+
 	return (parseInt(week));
 }
 
@@ -265,18 +273,34 @@ function GroupPicksAddExport()
  */
 function GroupPicksGetRowStats(id)
 {
+	let debug = 1;
+	if (debug)
+		console.log(`${arguments.callee.name}('${id}')`);
 
 	let row = [...document.getElementsByName('pick-o-rows')].filter((element) => {return (element.getAttribute('pick-o-row-id') == id)});
 	if (row.length == 1) {
 		let td = row[0].getElementsByTagName('td');
 		let picked_points = 0;
+		let week = GetCurrentWeek();
 		let games = 0;
 		let incorrect = 0;
 		let correct = 0;
 		[...td].forEach((r, index) => {
+			let game_status = r.getAttribute('game_status');
 			games = index - 1;					// Keep track of the number of games
+
+			if (debug)
+				console.log(`Game #${index}, for Week ${week}, ${r.getAttribute('game_status')}`);
+
 			if (r.getAttribute('name') == 'pick-o-nopick') {
-				//console.log(`\t${id}: Stats: No Pick `);
+				if (debug)
+					console.log(`\t${id}: Stats: No Pick `);
+				return;
+			}
+			/*
+			 * Ignore Games that don't have a status
+			 */
+			if (!game_status || game_status != 'pick-o-finished') {
 				return;
 			}
 
@@ -303,7 +327,23 @@ function GroupPicksGetRowStats(id)
 			}
 		});
 		let max_points = games * (games + 1) / 2;	
+		/*
+		 * For playoffs (greater than week 18) the points look like this:
+		 */
+		if (week > 18) {
+			if (games == 6) {
+				max_points = 16 + 14 + 12 + 10 + 8 + 6;
+			} else if (games == 4) {
+				max_points = 16 + 12 + 8 + 4;
+			} else if (games == 4) {
+				max_points = 16 + 8;
+			} else {
+				max_points = 16;
+			}
+		}
 		let possible = max_points - incorrect;
+		if (debug)
+			console.log(`Week: ${week}, Number of Games: ${games}, Max Points: ${max_points}`);
 		/*
 		 * If you don't pick any points your potential is zero.
 		 * This can happen for games in the future.
@@ -350,10 +390,12 @@ function GetPushes()
 
 function GroupPicksKeepScore()
 {
+	let debug = 0;
 	let rows = document.getElementsByTagName('tr');
 	let rowIndex = -1;
 
-	//console.log(`${arguments.callee.name}()`);
+	if (debug)
+		console.log(`${arguments.callee.name}()`);
 
 	let week = GetCurrentWeek();
 	let GameTimes = localStorage.getItem(`Week-${week}`);
@@ -414,27 +456,35 @@ function GroupPicksKeepScore()
 					let start = Date.parse(game_time);
 					let end = Date.parse(game_time) + (hour * 4);
 					let now = Date.now(); 
-					//console.log(`Game Start: '${start}', Game End: '${end}', Now: '${now}'`);
-					//console.log(`-----------------------------------------------------------------`);
+					if (debug) {
+						console.log(`Game Start: '${start}', Game End: '${end}', Now: '${now}'`);
+						console.log(`-----------------------------------------------------------------`);
+					}
 
 					if ((start < now) && (now < end)) {
-						//console.log(`\tGame inprogress`);
-						td[n].setAttribute('game_status', 'pick-o-inprogres');
+						if (debug)
+							console.log(`\tGame inprogress`);
+						td[n].setAttribute('game_status', 'pick-o-inprogress');
 						continue;
 					} else if (start > now) {
-						//console.log(`\tGame not started`);
+						if(debug)
+							console.log(`\tGame not started`);
 						td[n].setAttribute('game_status', 'pick-o-not-started');
 						continue;
 					}
 				}
 				if (td[n].innerText.match(/\(\d+\)/)) {
-					//console.log(`Possible push - '${td[n].innerText}'`);
+					if (debug)
+						console.log(`\tCheck4Push - Possible push - '${td[n].innerText}'`);
 					td[n].setAttribute('name', 'pick-o-push');
 				} else if (td[n].innerText.trim() == '') {
-					//console.log(`No Pick`);
+					if (debug)
+						console.log(`\tCheck4Push - No Pick`);
 					td[n].setAttribute('name', 'pick-o-nopick');
 				} else {
-					//console.log(`Unknown Case - '${td[n].className}' -- ${td[n].innerText}`);
+					// Likely the game has not started yet
+					if (debug)
+						console.log(`\tCheck4Push - Unknown Case - '${td[n].className}' -- ${td[n].innerText}`);
 				}
 			} else {
 				td[n].setAttribute('game_status', 'pick-o-finished');
@@ -548,7 +598,9 @@ function CalcWinLoss()
 		/*
 		 * Aggregate the Score (W) Points - [Average] - Possible Points (L)
 		 */
-		let Score = `<span style="color: #339E00;padding-right: 10px;">(${Correct})</span> ${Stats.correct} - <span style="color: #5494ff">[${Average}]</span> - ${Stats.possible} <span style="color: #C11515;padding-left: 10px;">(${Incorrect})</span>`;
+		let Score = `
+			<!-- Aggregate the Score (W) Points - [Average] - Possible Points (L) -->
+			<span style="color: #339E00;padding-right: 10px;">(${Correct})</span> ${Stats.correct} - <span style="color: #5494ff">[${Average}]</span> - ${Stats.possible} <span style="color: #C11515;padding-left: 10px;">(${Incorrect})</span>`;
 		TeamNameRow.lastElementChild.innerHTML = Score;
 
 		TeamNameRow = TeamNameRow.nextElementSibling;			// Next Row

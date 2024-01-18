@@ -1,7 +1,7 @@
 {
   "name": "Pick-O - Yahoo! Fantasy Football Picker",
   "short_name": "Pick-O",
-  "version": "1.5",
+  "version": "1.6",
   "description": "Yahoo! Fantasy Football Picker",
   "manifest_version": 3,
   "icons": { "128":"images/Logo-Extension.png" },
